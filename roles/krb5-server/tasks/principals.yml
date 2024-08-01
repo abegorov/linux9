@@ -1,0 +1,44 @@
+---
+- name: Get kerberos principals
+  ansible.builtin.command:
+    cmd: kadmin.local -q listprincs
+  changed_when: false
+  register: krb_users
+
+- name: Register root user
+  ansible.builtin.command:
+    cmd: >
+      kadmin.local
+      -q 'addprinc -pw "{{
+        lookup(
+          'ansible.builtin.password',
+          'creds/root-pwd.txt',
+          length=26
+        )
+      }}" root/admin'
+  changed_when: true
+  when: "('root/admin@'+krb_realm) not in krb_users.stdout_lines"
+
+- name: Register vagrant user
+  ansible.builtin.command:
+    cmd: "kadmin.local -q 'addprinc -nokey vagrant'"
+  changed_when: true
+  when: "('vagrant@'+krb_realm) not in krb_users.stdout_lines"
+
+- name: Add nfs-server host
+  ansible.builtin.command:
+    cmd: "kadmin.local -q 'addprinc -nokey host/nfs-server'"
+  changed_when: true
+  when: "('host/nfs-server@'+krb_realm) not in krb_users.stdout_lines"
+
+- name: Add nfs-client host
+  ansible.builtin.command:
+    cmd: "kadmin.local -q 'addprinc -nokey host/nfs-client'"
+  changed_when: true
+  when: "('host/nfs-client@'+krb_realm) not in krb_users.stdout_lines"
+
+- name: Add nfs-server principal
+  ansible.builtin.command:
+    cmd: "kadmin.local -q 'addprinc -nokey nfs/nfs-server'"
+  changed_when: true
+  when: "('nfs/nfs-server@'+krb_realm) not in krb_users.stdout_lines"

@@ -1,0 +1,14 @@
+---
+- name: Install nfs-utils
+  ansible.builtin.dnf:
+    name: nfs-utils
+    update_cache: true
+    state: present
+
+- name: Configure idmapd
+  ansible.builtin.template:
+    src: idmapd.conf
+    dest: /etc/idmapd.conf
+    owner: root
+    group: root
+    mode: '0644'

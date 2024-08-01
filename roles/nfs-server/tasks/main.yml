@@ -1,0 +1,53 @@
+---
+- name: Configure nfs
+  ansible.builtin.template:
+    src: nfs.conf
+    dest: /etc/nfs.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart nfs-server.service
+
+- name: Create share directory
+  ansible.builtin.file:
+    path: '{{ nfs_share_dir }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create upload directory
+  ansible.builtin.file:
+    path: '{{ nfs_share_dir }}/upload'
+    state: directory
+    owner: vagrant
+    group: vagrant
+    mode: '0755'
+
+- name: Update nfs exports
+  ansible.builtin.template:
+    src: exports
+    dest: /etc/exports
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Reexport nfs
+
+- name: Create krb5.keytab for nfs auth
+  ansible.builtin.command:
+    cmd: kadmin.local -q 'ktadd nfs/nfs-server host/nfs-server'
+    creates: /etc/krb5.keytab
+
+- name: Start nfs-server.service
+  ansible.builtin.systemd:
+    name: nfs-server.service
+    enabled: true
+    state: started
+
+- name: Configure firewalld for nfs
+  ansible.posix.firewalld:
+    zone: public
+    service: nfs
+    permanent: true
+    immediate: true
+    state: enabled

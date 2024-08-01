@@ -1,0 +1,10 @@
+[Unit]
+Description=Mount share
+Before=remote-fs.target
+
+[Mount]
+What=nfs-server:{{ nfs_share_dir }}
+Where={{ nfs_share_mountpoint }}
+Options=vers=4.2,sec=krb5p
+Type=nfs
+TimeoutSec=30

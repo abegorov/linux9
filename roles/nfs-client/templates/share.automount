@@ -1,0 +1,8 @@
+[Unit]
+Description=Automount share
+
+[Automount]
+Where={{ nfs_share_mountpoint }}
+
+[Install]
+WantedBy=multi-user.target

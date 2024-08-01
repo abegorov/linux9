@@ -1,0 +1,9 @@
+---
+- name: Restart krb5kdc.service
+  ansible.builtin.systemd:
+    name: krb5kdc.service
+    state: restarted
+
+- name: Reexport nfs
+  ansible.builtin.command: exportfs -r
+  changed_when: true

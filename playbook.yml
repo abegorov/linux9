@@ -1,0 +1,23 @@
+---
+- name: Common provision
+  hosts: all
+  become: true
+  gather_facts: false
+  roles:
+    - krb5-workstation
+    - nfs-utils
+
+- name: Provision nfs-server
+  hosts: nfs-server
+  become: true
+  gather_facts: false
+  roles:
+    - krb5-server
+    - nfs-server
+
+- name: Provision nfs-client
+  hosts: nfs-client
+  become: true
+  gather_facts: false
+  roles:
+    - nfs-client

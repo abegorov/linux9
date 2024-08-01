@@ -1,0 +1,67 @@
+---
+- name: Add nfs-server to hosts file
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: '\bnfs-server\b'
+    line: '{{ nfs_server_ip }} nfs-server'
+
+- name: Create krb5.keytab for host auth
+  ansible.builtin.command:
+    cmd: >
+      kadmin
+      -p root/admin
+      -w '{{ lookup('ansible.builtin.file', 'creds/root-pwd.txt') }}'
+      -q 'ktadd host/nfs-client'
+    creates: /etc/krb5.keytab
+
+- name: Create .keytab for vagrant auth
+  become: false
+  ansible.builtin.command:
+    cmd: >
+      kadmin
+      -p root/admin
+      -w '{{ lookup('ansible.builtin.file', 'creds/root-pwd.txt') }}'
+      -q 'ktadd -keytab "/home/vagrant/.keytab" vagrant'
+    creates: /home/vagrant/.keytab
+
+- name: Automatically initialize ticket on vagrant logon
+  become: false
+  ansible.builtin.lineinfile:
+    path: /home/vagrant/.bashrc
+    regexp: ^kinit .+
+    line: kinit "${USER}" -k -t "${HOME}/.keytab"
+
+- name: Start rpc-gssd.service
+  ansible.builtin.systemd:
+    name: rpc-gssd.service
+    state: started
+
+- name: Create share directory
+  ansible.builtin.file:
+    path: '{{ nfs_share_mountpoint }}'
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Configure share mount
+  ansible.builtin.template:
+    src: share.mount
+    dest: /etc/systemd/system/{{ nfs_share_mountname }}.mount
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Configure share automount
+  ansible.builtin.template:
+    src: share.automount
+    dest: /etc/systemd/system/{{ nfs_share_mountname }}.automount
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Start share automount
+  ansible.builtin.systemd:
+    name: '{{ nfs_share_mountname }}.automount'
+    enabled: true
+    state: started

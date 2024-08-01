@@ -1,0 +1,9 @@
+---
+  krb_domain: abe.internal
+  krb_realm: '{{ krb_domain | upper }}'
+  krb_kdc_ip: '192.168.56.10'
+  nfs_server_ip: '{{ krb_kdc_ip }}'
+  nfs_share_dir: /srv/share
+  nfs_share_mountpoint: /media/share
+  nfs_share_mountname: "{{ nfs_share_mountpoint |
+    regex_replace('^/', '') | regex_replace('/', '-') }}"

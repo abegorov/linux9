@@ -1,0 +1,69 @@
+---
+- name: Install krb5-server
+  ansible.builtin.dnf:
+    name: krb5-server
+    update_cache: true
+    state: present
+
+- name: Configure krb5-server kdc
+  ansible.builtin.template:
+    src: kdc.conf
+    dest: /var/kerberos/krb5kdc/kdc.conf
+    owner: root
+    group: root
+    mode: '0600'
+  notify: Restart krb5kdc.service
+
+- name: Configure krb5-server acl
+  ansible.builtin.template:
+    src: kadm5.acl
+    dest: /var/kerberos/krb5kdc/kadm5.acl
+    owner: root
+    group: root
+    mode: '0600'
+  notify: Restart krb5kdc.service
+
+- name: Create kerberos database
+  ansible.builtin.command:
+    cmd: >
+      kdb5_util
+      -P '{{
+        lookup(
+          'ansible.builtin.password',
+          'creds/kdc-master.txt',
+          length=26
+        )
+      }}'
+      create -s
+    creates: /var/kerberos/krb5kdc/principal
+
+- name: Add kerberos principals
+  ansible.builtin.import_tasks: principals.yml
+
+- name: Start krb5kdc.service
+  ansible.builtin.systemd:
+    name: krb5kdc.service
+    enabled: true
+    state: started
+
+- name: Start kadmin.service
+  ansible.builtin.systemd:
+    name: kadmin.service
+    enabled: true
+    state: started
+
+- name: Configure firewalld for kerberos
+  ansible.posix.firewalld:
+    zone: public
+    service: kerberos
+    permanent: true
+    immediate: true
+    state: enabled
+
+- name: Configure firewalld for kadmin
+  ansible.posix.firewalld:
+    zone: public
+    service: kadmin
+    permanent: true
+    immediate: true
+    state: enabled
